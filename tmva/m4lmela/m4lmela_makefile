@@ -1,0 +1,22 @@
+# ------------------------------------------------------------------------------
+# build libm4lmela.so
+# created: Mon May  1 12:16:01 2017 by writeTMVA.py
+# ------------------------------------------------------------------------------
+AT      := @
+CXXFLAGS:= $(shell root-config --cflags) -fPIC
+LDFLAGS	:= $(shell root-config --ldflags)
+LIBS	:= $(shell root-config --libs)
+
+libm4lmela.so:	m4lmela_dictionary.cxx
+	$(AT)echo "building library $@"
+	$(AT)g++ -shared -o $@  $(LDFLAGS) $(LIBS) $(CXXFLAGS) $^
+
+m4lmela_dictionary.cxx: m4lmela.cc m4lmela_linkdef.h
+	$(AT)echo "building dictionary file $@"
+	$(AT)rootcint -f $@ -c $(CXXFLAGS) $+
+
+clean:
+	rm -rf m4lmela_dictionary.cxx libm4lmela.so m4lmela*.pcm
+
+nuke:
+	rm -rf m4lmela_* m4lmela.cc
