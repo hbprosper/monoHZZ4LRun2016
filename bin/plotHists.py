@@ -63,7 +63,8 @@ def plotRatio(hs1, hc1, name, xtitle, ytitle, iPeriod, iPos,
         
     hratio.Draw('ep')
     CMS_lumi.CMS_lumi(cratio, iPeriod, iPos)    
-    cratio.Update()    
+    cratio.Update()
+    gSystem.ProcessEvents()
     cratio.SaveAs('.png')
     gStyle.SetOptStat('')
     
@@ -107,7 +108,8 @@ def plotRatio(hs1, hc1, name, xtitle, ytitle, iPeriod, iPos,
 
     pad2.cd()
     hr.Draw('ep')
-    c.Update()    
+    c.Update()
+    gSystem.ProcessEvents()
     c.SaveAs('.png')
 
     return (c, cratio, pad1, pad2, hr, hs, hc)
@@ -147,7 +149,8 @@ def plotDataMCRatio(hd, hmc, name, xtitle, ytitle, iPeriod, iPos,
     cratio.SetGridy()
     hratio.Draw('ep')
     CMS_lumi.CMS_lumi(cratio, iPeriod, iPos)    
-    cratio.Update()    
+    cratio.Update()
+    gSystem.ProcessEvents()    
     cratio.SaveAs('.png')
     gStyle.SetOptStat('')
 
@@ -184,7 +187,7 @@ def plotDataMCRatio(hd, hmc, name, xtitle, ytitle, iPeriod, iPos,
     yy = 0.70
     wx = 0.36
     wy = 0.22
-    lg = TLegend(xx, yy, xx+wx, yy+wy, 'Control Region #font[12]{D} < 0.2')
+    lg = TLegend(xx, yy, xx+wx, yy+wy, 'Control Region #font[12]{D} < 0.3')
     lg.SetFillColor(kWhite)
     lg.SetTextFont(42)
     lg.SetBorderSize(0)
@@ -206,7 +209,8 @@ def plotDataMCRatio(hd, hmc, name, xtitle, ytitle, iPeriod, iPos,
 
     pad2.cd()
     hr.Draw('ep')
-    c.Update()    
+    c.Update()
+    gSystem.ProcessEvents()    
     c.SaveAs('.png')
 
     return (c, cratio, pad1, pad2, hr, lg)
@@ -223,7 +227,7 @@ def main():
     iPeriod = 4
     iPos    = 0
     CMS_lumi.relPosX = 0.12
-    CMS_lumi.lumi_13TeV = "30 fb^{-1}"
+    CMS_lumi.lumi_13TeV = "36 fb^{-1}"
     CMS_lumi.writeExtraText = 1
     CMS_lumi.extraText = "Simulation"
     
@@ -242,9 +246,6 @@ def main():
     
     # scale background to match data in control region (CR)
     # defined by BNN < 0.3
-    #   observed count in SR:   6 events
-    #   observed count in CR:  98 events
-    #   predicted count in CR: 113.3 (0.43 Higgs)
     scale = 1.0
     
     # get bkg BNN histogram and scale it
@@ -255,8 +256,8 @@ def main():
     hbnn_s = fsig.Get('hbnn').Clone('hbnn_s')
 
     # get 2-D f_D_bkg_kin vs f_mass_4l histograms. normalize to unity
-    hb = fbkg.Get('hDmass').Clone('hb'); hb.Scale(1.0/hb.Integral())
-    hs = fsig.Get('hDmass').Clone('hs'); hs.Scale(1.0/hs.Integral())
+    hb = fbkg.Get('hm4lD').Clone('hb'); hb.Scale(1.0/hb.Integral())
+    hs = fsig.Get('hm4lD').Clone('hs'); hs.Scale(1.0/hs.Integral())
 
     # compute hp = hs / (hs + hb)
     hd = hs.Clone()
@@ -265,10 +266,8 @@ def main():
     hp.Divide(hd)
                 
     # compile BNN (=D(f_mass_4l, f_D_bkg_kin))discriminant
-    print '\ncompling BNN..'
-    record = open('DMass4l2016.cpp').read()
-    gROOT.ProcessLine(record)
-    bnn = Dmass4l2016
+    gROOT.ProcessLine('.L m4lmela.cpp')
+    bnn = m4lmela
     
     # create 2-D histogram of BNN function
     nxbin = hs.GetNbinsX()
@@ -315,6 +314,7 @@ def main():
     hbnn.Draw('cont3same')
     CMS_lumi.CMS_lumi(cp, iPeriod, iPos)
     cp.Update()
+    gSystem.ProcessEvents()    
     cp.SaveAs('.png')
             
     # plot BNN distributions
@@ -326,6 +326,7 @@ def main():
     hbnn_s.Draw('histsame')
     CMS_lumi.CMS_lumi(cbnn, iPeriod, iPos)    
     cbnn.Update()
+    gSystem.ProcessEvents()    
     cbnn.SaveAs('.png')
 
     # plot BNN distributions
@@ -338,6 +339,7 @@ def main():
     hbnn_s.Draw('histsame')
     CMS_lumi.CMS_lumi(cbnnlog, iPeriod, iPos)    
     cbnnlog.Update()
+    gSystem.ProcessEvents()    
     cbnnlog.SaveAs('.png')
 
     hist = []
@@ -377,7 +379,7 @@ def main():
     ##     hist.append((stuff, hd, hmc))
     
         
-    gApplication.Run()
+    #gApplication.Run()
     sleep(10)
 # -------------------------------------------------------------------------
 try:     

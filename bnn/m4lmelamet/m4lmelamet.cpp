@@ -6,7 +6,7 @@
 //    f_D_bkg_kin                                4.712e-01   2.824e-01
 //    f_pfmet                                    1.761e+02   2.521e+02
 //
-// Created: Tue May  2 10:46:28 2017 by netwrite.py
+// Created: Wed May  3 15:36:22 2017 by netwrite.py
 //-----------------------------------------------------------------------------
 #include <cmath>
 #include <vector>
@@ -14,7 +14,7 @@
 #include <stdlib.h>
 //-----------------------------------------------------------------------------
 // Make following visible only to this programming unit
-namespace {
+namespace m4lmelamet_{
   // NOTE: Network indices start at 0
   static const int nnetworks=100;
   static const int ninputs  =3;
@@ -1129,7 +1129,7 @@ namespace {
     double x20 = 1.0/(1.0+exp(-x));
     return x20;
   }
-} // End anonymous namespace
+} // end namespace m4lmelamet
 
 //-----------------------------------------------------------------------------
 // Compute average over networks. Default is to use all networks
@@ -1137,11 +1137,11 @@ namespace {
 
 double m4lmelamet(std::vector<double>& inputs,
                   int first=0,
-                  int last=nnetworks-1)
+                  int last=m4lmelamet_::nnetworks-1)
 {
   if ( first < 0 ) first = 0;
-  if ( last  < 0 ) last  = nnetworks-1;
-  if ( last  > nnetworks-1 ) last = nnetworks-1;
+  if ( last  < 0 ) last  = m4lmelamet_::nnetworks-1;
+  if ( last  > m4lmelamet_::nnetworks-1 ) last = m4lmelamet_::nnetworks-1;
   if ( first > last )
     {
       std::cerr << "** m4lmelamet ** first-index > last-index"
@@ -1149,14 +1149,14 @@ double m4lmelamet(std::vector<double>& inputs,
     }
 
   // Compute average over networks
-  std::vector<double> in(ninputs);
-  in[0] = (inputs[0] - mean[0]) / sigma[0];
-  in[1] = (inputs[1] - mean[1]) / sigma[1];
-  in[2] = (inputs[2] - mean[2]) / sigma[2];
+  std::vector<double> in(m4lmelamet_::ninputs);
+  in[0] = (inputs[0] - m4lmelamet_::mean[0]) / m4lmelamet_::sigma[0];
+  in[1] = (inputs[1] - m4lmelamet_::mean[1]) / m4lmelamet_::sigma[1];
+  in[2] = (inputs[2] - m4lmelamet_::mean[2]) / m4lmelamet_::sigma[2];
 
   int   n = last - first + 1;
   double x = 0.0;
-  for(int i=first; i <= last; i++) x += netfun(in, weight[i]);
+  for(int i=first; i <= last; i++) x += m4lmelamet_::netfun(in, m4lmelamet_::weight[i]);
   x /= n;
   return x;
 }
@@ -1164,9 +1164,9 @@ double m4lmelamet(std::vector<double>& inputs,
 double m4lmelamet(double f_mass4l,
                   double f_D_bkg_kin,
                   double f_pfmet,
-                  int first=0, int last=nnetworks-1)
+                  int first=0, int last=m4lmelamet_::nnetworks-1)
 {
-  std::vector<double> in(ninputs);
+  std::vector<double> in(m4lmelamet_::ninputs);
   in[0] = f_mass4l;
   in[1] = f_D_bkg_kin;
   in[2] = f_pfmet;

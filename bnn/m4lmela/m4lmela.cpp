@@ -5,7 +5,7 @@
 //    f_mass4l                                   1.176e+02   2.049e+01
 //    f_D_bkg_kin                                4.662e-01   2.850e-01
 //
-// Created: Mon May  1 15:13:55 2017 by netwrite.py
+// Created: Wed May  3 14:58:46 2017 by netwrite.py
 //-----------------------------------------------------------------------------
 #include <cmath>
 #include <vector>
@@ -13,7 +13,7 @@
 #include <stdlib.h>
 //-----------------------------------------------------------------------------
 // Make following visible only to this programming unit
-namespace {
+namespace m4lmela_{
   // NOTE: Network indices start at 0
   static const int nnetworks=100;
   static const int ninputs  =2;
@@ -915,7 +915,7 @@ namespace {
     double x20 = 1.0/(1.0+exp(-x));
     return x20;
   }
-} // End anonymous namespace
+} // end namespace m4lmela
 
 //-----------------------------------------------------------------------------
 // Compute average over networks. Default is to use all networks
@@ -923,11 +923,11 @@ namespace {
 
 double m4lmela(std::vector<double>& inputs,
                int first=0,
-               int last=nnetworks-1)
+               int last=m4lmela_::nnetworks-1)
 {
   if ( first < 0 ) first = 0;
-  if ( last  < 0 ) last  = nnetworks-1;
-  if ( last  > nnetworks-1 ) last = nnetworks-1;
+  if ( last  < 0 ) last  = m4lmela_::nnetworks-1;
+  if ( last  > m4lmela_::nnetworks-1 ) last = m4lmela_::nnetworks-1;
   if ( first > last )
     {
       std::cerr << "** m4lmela ** first-index > last-index"
@@ -935,22 +935,22 @@ double m4lmela(std::vector<double>& inputs,
     }
 
   // Compute average over networks
-  std::vector<double> in(ninputs);
-  in[0] = (inputs[0] - mean[0]) / sigma[0];
-  in[1] = (inputs[1] - mean[1]) / sigma[1];
+  std::vector<double> in(m4lmela_::ninputs);
+  in[0] = (inputs[0] - m4lmela_::mean[0]) / m4lmela_::sigma[0];
+  in[1] = (inputs[1] - m4lmela_::mean[1]) / m4lmela_::sigma[1];
 
   int   n = last - first + 1;
   double x = 0.0;
-  for(int i=first; i <= last; i++) x += netfun(in, weight[i]);
+  for(int i=first; i <= last; i++) x += m4lmela_::netfun(in, m4lmela_::weight[i]);
   x /= n;
   return x;
 }
 
 double m4lmela(double f_mass4l,
                double f_D_bkg_kin,
-               int first=0, int last=nnetworks-1)
+               int first=0, int last=m4lmela_::nnetworks-1)
 {
-  std::vector<double> in(ninputs);
+  std::vector<double> in(m4lmela_::ninputs);
   in[0] = f_mass4l;
   in[1] = f_D_bkg_kin;
   return m4lmela(in, first, last);

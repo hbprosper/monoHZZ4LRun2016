@@ -16,8 +16,9 @@ VARNAME = 'f_pfmet'
 BNNNAME = 'm4lmelamet'
 MASSMIN =  70
 MASSMAX = 170
+BNNCUT  = 0.3
 #------------------------------------------------------------------
-def readAndFillHist(filename, bnn, c1, h1, step=10000,
+def readAndFillHist(filename, bnn, c1, h1, m4lmela, step=10000,
                         treename="HZZ4LeptonsAnalysisReduced"):
     # ---------------------------------------
     # open ntuple file
@@ -48,6 +49,8 @@ def readAndFillHist(filename, bnn, c1, h1, step=10000,
         count += 1
         if count < ntrain: continue
 
+        #d = m4lmela(event.f_mass4l, event.f_D_bkg_kin)
+        #if d < BNNCUT: continue
             
         w = event.f_weight
         for ii in xrange(len(fields)):
@@ -93,7 +96,8 @@ Usage:
     print "="*80
 
     # compile bnn function
-    gROOT.ProcessLine('.L %s.cpp' % BNNname)        
+    gROOT.ProcessLine('.L m4lmelamet.cpp')
+    gROOT.ProcessLine('.L m4lmela.cpp')        
     bnn = eval(BNNname)
     print "="*80    
         
@@ -166,9 +170,9 @@ Usage:
         name = h[ii].GetName()
         cbnn1.SetTitle(name)
         print name
-        readAndFillHist(sigfilename, bnn, cbnn1, h[ii], 500)
+        readAndFillHist(sigfilename, bnn, cbnn1, h[ii], m4lmela, 500)
     
-    readAndFillHist(bkgfilename, bnn, cbnn1, hb1, 10000)
+    readAndFillHist(bkgfilename, bnn, cbnn1, hb1, m4lmela, 10000)
 
     icolor = 0
     hroc = []

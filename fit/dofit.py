@@ -80,7 +80,7 @@ def main():
       enumerate([('../fig_bkg.root', 'bkg', 225.60),
                  ('../fig_higgs.root', 'higgs',27.0)]):
         f.append(TFile(filename))
-        h.append( f[-1].Get('hbnn').Clone(hname) )
+        h.append( f[-1].Get('hm4l').Clone(hname) )
         if not h[-1]: sys.exit("** can't find hbnn")
         h[-1].SetNdivisions(505, 'X')
         t.append(c)
@@ -105,7 +105,7 @@ def main():
     # Get histogram of observed counts
     filename = '../fig_data.root'
     f.append(TFile(filename))
-    hdata = f[-1].Get('hbnn')
+    hdata = f[-1].Get('hm4l')
     if not hdata: sys.exit("** can't find hbnn")
     ymax = 60
     hdata.SetMaximum(ymax)

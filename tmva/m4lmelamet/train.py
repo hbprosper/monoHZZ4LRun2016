@@ -41,7 +41,7 @@ def main():
     #------------------------------------------------------------------
     # get signal file and associated Root tree
     weightname  = "f_weight"  # name of event weight variable
-    sigFilename = '../../ntuple_higgs.root'
+    sigFilename = '../../ntuple_Zprime_MZp01700_MA00300.root'
     sigFile, sigTree = getTree(sigFilename)
 
     # get background file and associated Root tree
