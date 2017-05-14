@@ -1,0 +1,29 @@
+Workflow	Notes
+Updated:	30 April 2017
+
+0. Setup
+
+   source setup.sh
+
+1. Create filelists
+
+   makeFilelists.py store/histos4mu_25ns/*.root
+   makeFilelists.py store/histos4e_25ns/*.root
+   makeFilelists.py store/histos2e2mu_25ns/*.root
+
+2. Create ntuples (by final state)
+
+   find store/filelist_*.txt > filelists.txt
+   writeAllNtuples.py
+
+For each filelist in filelists.txt, read from listed files and randomly shuffle the
+events from the files and write them to another ntuple.
+
+3. Merge ntuples so all final states for a given source are in the same file
+
+   find store/ntuple_4mu_*.root > mergelists.txt
+   mergeAllNtuples.py
+
+
+
+   

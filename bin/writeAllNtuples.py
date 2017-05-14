@@ -10,7 +10,7 @@ from string import *
 def main():
     filenames = map(strip, open("filelists.txt").readlines())
     for filename in filenames:
-        cmd = './writeNtuples.py %s' % filename
+        cmd = 'writeNtuples.py %s' % filename
         print cmd
         os.system(cmd)
 # ----------------------------------------------------------------------------
