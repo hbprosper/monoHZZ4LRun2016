@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # ----------------------------------------------------------------------------
-#  File:        makeHists.py
+#  File:        makeAllHists.py
 #  Description: mono-H->ZZ->4lepton analysis using reduced ntuples from Bari
 #               make summary histograms for further analysis.
 #  Created:     15-Oct-2016 HBP    
@@ -8,7 +8,6 @@
 import os, sys, re
 from string import *
 FILES='''
-ntuple_SM.root
 ntuple_ZpBary_MZp00010_MA00001.root
 ntuple_ZpBary_MZp00010_MA00010.root
 ntuple_ZpBary_MZp00010_MA00050.root
@@ -53,6 +52,7 @@ ntuple_Zprime_MZp01400_MA00300.root
 ntuple_Zprime_MZp01700_MA00300.root
 ntuple_Zprime_MZp02000_MA00300.root
 ntuple_Zprime_MZp02500_MA00300.root
+ntuple_SM.root
 ntuple_bkg.root
 ntuple_data.root
 ntuple_higgs.root
@@ -60,7 +60,7 @@ ntuple_higgs.root
 FILENAMES = split(strip(FILES), '\n')
 def main():
     for filename in FILENAMES:
-        cmd = './makeHists.py %s' % filename
+        cmd = 'makeHists.py %s' % filename
         print cmd
         os.system(cmd)
 # -------------------------------------------------------------------------

@@ -14,6 +14,19 @@ from array import array
 import CMS_lumi, tdrstyle
 from histutil import Ntuple, nameonly
 # ----------------------------------------------------------------------------
+METBINS  = 200
+METMIN   =   0
+METMAX   =1000
+
+MASSBINS =  25
+MASSMIN  = 100
+MASSMAX  = 150
+
+DBINS    =  50
+
+BNNCUT   = 0.3
+SKIP     = 50000
+
 # fields to be read from ntuples 
 FIELDS = ['f_weight',
           'f_mass4l',
@@ -27,18 +40,31 @@ FIELDS = ['f_weight',
 
 BNNXTITLE = '#font[12]{D}(#font[12]{m}_{4l}, #font[12]{D}_{bkg}^{kin})'
 
-PLOTS = [('pfmet',  '#font[12]{E}_{T}^{miss} (GeV)', 10,  10),
-         ('pt4l',   '#font[12]{p}_{T4l} (GeV)',     515,  10),
-         ('mT',     '#font[12]{m}_{T} (GeV)',      1030,  10),
-         ('mass4l', '#font[12]{m}_{m4l} (GeV)',      10, 510)]
+PLOTS = [('pfmet',  '#font[12]{E}_{T}^{miss} (GeV)', 10,  10,
+              200, 0, 1000),
+         ('pt4l',   '#font[12]{p}_{T4l} (GeV)',     515,  10,
+              200, 0, 1000),
+         ('mT',     '#font[12]{m}_{T} (GeV)',      1030,  10,
+              200, 0, 1000),
+         ('mass4l', '#font[12]{m}_{m4l} (GeV)',      10, 510,
+              MASSBINS, MASSMIN, MASSMAX),
+         ('metd',   'D(#font[12]{E}_{T}^{miss})',   515, 510,
+              DBINS, 0, 1)]             
+
+PLOTSZOOM = [('pfmet',  '#font[12]{E}_{T}^{miss} (GeV)', 10,  10,
+              50, 0, 200),
+            ('pt4l',   '#font[12]{p}_{T4l} (GeV)',     515,  10,
+              50, 0, 200),
+            ('mT',     '#font[12]{m}_{T} (GeV)',      1030,  10,
+              50, 0, 200)]
     
-MASSBINS =  50
-MASSMIN  =  70
-MASSMAX  = 170
-DBINS    =  50
-BNNCUT   = 0.3
-SKIP     = 50000
+
 stripit= re.compile('_2e2mu|_4e|_4mu')
+
+gROOT.ProcessLine('.L metd.cpp')
+gROOT.ProcessLine('.L m4lmela.cpp')
+gROOT.ProcessLine('.L m4lmelamet.cpp')
+
 # ----------------------------------------------------------------------------
 def hintegral(h, cut=-1.0):
     lbin = h.GetNbinsX()
@@ -64,17 +90,26 @@ class HistBag:
                  ymin=1.e-9,
                  postfix=''):
         
-        self.plotname = plotname + '_%s%s' % (name, postfix)
-        print self.plotname
-        
         self.ntuple = ntuple
         self.xtitle = xtitle
         self.xoff   = xoff
-        self.yoff   = yoff        
-        self.field  = 'f_%s' % name
-        
-        c  = TCanvas(self.plotname, name+postfix, xoff, yoff, 500, 500)
-        
+        self.yoff   = yoff
+        self.name   = name
+        if name == 'metd':
+            self.field = 'f_pfmet'
+            xmin = 0
+            xmax = 1
+            self.metd = metd
+        else:
+            self.field  = 'f_%s' % name
+
+        self.plotname = plotname + '_%s%s' % (name, postfix)
+
+    
+        cname = 'histos/%s' % self.plotname
+        print cname
+        c  = TCanvas(cname, cname, xoff, yoff, 500, 500)
+    
         # signal region    
         hs  = TH1F('h%ss' % name+postfix, '', xbins, xmin, xmax)
         hs.SetLineWidth(1)
@@ -109,11 +144,13 @@ class HistBag:
     def fillSR(self):
         w = self.ntuple('f_weight')
         x = self.ntuple(self.field)
+        if self.name == 'metd': x = self.metd(x)
         self.hs.Fill(x, w)
 
     def fillCR(self):
         w = self.ntuple('f_weight')
         x = self.ntuple(self.field)
+        if self.name == 'metd': x = self.metd(x)        
         self.hc.Fill(x, w)
 
     def scale(self, scaleFactor):
@@ -162,8 +199,8 @@ def main():
     gStyle.SetStatX(0.83)
     gStyle.SetStatY(0.93)    
 
-    gROOT.ProcessLine('.L m4lmela.cpp')
-    mvd = m4lmela
+    bnn  = m4lmela
+    bnn3 = m4lmelamet
     
     #change the CMS_lumi variables (see CMS_lumi.py)
     iPeriod = 4
@@ -183,10 +220,13 @@ def main():
 
     # name of graphics file
     name = nameonly(filenames[0])
-    plotname = replace(name, 'ntuple_', 'fig_')
+    plotname  = replace(name, 'ntuple_', 'fig_')
+    plotnameSRCR  = replace(name, 'ntuple_', 'fig_regions_')
+    histfname = replace(name, 'ntuple_', 'histos_')
     if len(filenames) > 1:
         plotname = stripit.sub('', plotname)
-    outfilename = '%s.root' % plotname
+        histfname= stripit.sub('', histfname)
+    outfilename = 'histos/%s.root' % histfname
         
     # change marker size and color depending on filename
     isData = False
@@ -230,9 +270,9 @@ def main():
     # book histograms
     # ---------------------------------------
     # 2-D plot in (f_mass4l, f_D_bkg_kin) space
-    
-    cm4lD  = TCanvas(plotname, plotname, 10, 10, 500, 500)    
-    hm4lD  = TH2F('hm4lD', '', MASSBINS, MASSMIN, MASSMAX, DBINS, 0, 1)
+    cname = 'histos/%s' % plotname 
+    cm4lD = TCanvas(cname, cname, 10, 10, 500, 500)    
+    hm4lD = TH2F('hm4lD', '', MASSBINS, MASSMIN, MASSMAX, DBINS, 0, 1)
     hm4lD.SetMarkerSize(msize)
     hm4lD.SetMarkerColor(mcolor)
     hm4lD.GetXaxis().SetTitle('#font[12]{m}_{4l} (GeV)')
@@ -242,20 +282,22 @@ def main():
     hm4lD.GetXaxis().SetNdivisions(505)
     hm4lD.GetYaxis().SetNdivisions(505)
     
-    # 1-D plot in D(f_mass4l, f_D_bkg_kin) space    
-    cbnn  = TCanvas(plotname+'_bnn', plotname, 520, 10, 500, 500)    
+    # 1-D plot in D(f_mass4l, f_D_bkg_kin) space
+    cname = 'histos/%s_bnn' % plotname
+    cbnn  = TCanvas(cname, cname, 520, 10, 500, 500)    
     hbnn  = TH1F('hbnn', '', DBINS, 0, 1)
     hbnn.SetLineWidth(1)
     hbnn.SetFillColor(mcolor)
     hbnn.SetFillStyle(3001)
-    hbnn.GetXaxis().SetTitle('#font[12]{D}(#font[12]{m}_{4l}, '\
+    hbnn.GetXaxis().SetTitle('D(#font[12]{m}_{4l}, '\
                              '#font[12]{D}_{bkg}^{kin})')
     hbnn.GetXaxis().SetNdivisions(505)
     hbnn.Sumw2()
     hbnn.SetMinimum(0)
 
-    # 1-D plot in f_mass4l    
-    cm4l  = TCanvas(plotname+'_m4l', plotname, 1040, 10, 500, 500)    
+    # 1-D plot in f_mass4l
+    cname = 'histos/%s_m4l' % plotname
+    cm4l  = TCanvas(cname, cname, 1040, 10, 500, 500)    
     hm4l  = TH1F('hm4l', '', MASSBINS, MASSMIN, MASSMAX)
     hm4l.SetLineWidth(1)
     hm4l.SetFillColor(mcolor)
@@ -265,18 +307,46 @@ def main():
     hm4l.Sumw2()
     hm4l.SetMinimum(0)
 
-    
-    hbag = []
-    for ii, (name, xtitle, xoff, yoff) in enumerate(PLOTS):
-        hbag.append(HistBag(ntuple, plotname, name, xtitle, xoff, yoff))
 
-    for ii, (name, xtitle, xoff, yoff) in enumerate(PLOTS):
-        hbag.append(HistBag(ntuple, plotname, name, xtitle, xoff, yoff,
-                            50, 0, 250,
-                            ymin=1.e-9,
-                            postfix='2'))
- 
+    # 1-D plot in f_pfmet
+    cname = 'histos/%s_met' % plotname
+    cmet  = TCanvas(cname, cname, 10, 510, 500, 500)    
+    hmet  = TH1F('hmet', '', METBINS, METMIN, METMAX)
+    hmet.SetLineWidth(1)
+    hmet.SetFillColor(mcolor)
+    hmet.SetFillStyle(3001)
+    hmet.GetXaxis().SetTitle('#font[12]{E}_{T}^{miss} (GeV)')
+    hmet.GetXaxis().SetNdivisions(505)
+    hmet.Sumw2()
+    hmet.SetMinimum(0)    
+
     
+    # 1-D plot in D(f_mass4l, f_D_bkg_kin, f_pfmet)
+    cname = 'histos/%s_bnn3' % plotname
+    cbnn3  = TCanvas(cname, cname, 510, 510, 500, 500)    
+    hbnn3  = TH1F('hbnn3', '', DBINS, 0, 1)
+    hbnn3.SetLineWidth(1)
+    hbnn3.SetFillColor(mcolor)
+    hbnn3.SetFillStyle(3001)
+    hbnn3.GetXaxis().SetTitle('D(#font[12]{m}_{4l}, '\
+                             '#font[12]{D}_{bkg}^{kin}, '\
+                                  '#font[12]{E}_{T}^{miss})')
+    hbnn3.GetXaxis().SetNdivisions(505)
+    hbnn3.Sumw2()
+    hbnn3.SetMinimum(0)    
+
+
+    hbag = []
+    for ii, (name, xtitle, xoff, yoff, xbins, xmin, xmax) in enumerate(PLOTS):
+        hbag.append(HistBag(ntuple, plotnameSRCR, name, xtitle, xoff, yoff,
+                                xbins, xmin, xmax))
+
+    for ii,(name,xtitle, xoff, yoff, xbins, xmin, xmax) in enumerate(PLOTSZOOM):
+        hbag.append(HistBag(ntuple, plotnameSRCR, name, xtitle, xoff, yoff,
+                            xbins, xmin, xmax,
+                            ymin=1.e-9,
+                            postfix='_zoom'))
+ 
     # ---------------------------------------
     # Loop over events
     # ---------------------------------------
@@ -289,9 +359,10 @@ def main():
     for index, event in enumerate(ntuple):
         
         m4l  = event.f_mass4l
-        if m4l < MASSMIN: continue
-        if m4l > MASSMAX: continue
-            
+
+        if m4l  < MASSMIN: continue
+        if m4l  > MASSMAX: continue
+                        
         w = event.f_weight
         t1 += w
         t2 += w*w
@@ -299,14 +370,19 @@ def main():
         if event.f_outlier: continue
         w1 += w
         w2 += w*w
-        
-        Dbkg = event.f_D_bkg_kin
-        Dbnn = mvd(m4l, Dbkg)
 
+        Dbkg = event.f_D_bkg_kin
+        met  = event.f_pfmet
+        
+        Dbnn = bnn(m4l, Dbkg)
+        Dbnn3= bnn3(m4l, Dbkg, met)
+        
         hm4l.Fill(m4l, w)
         hm4lD.Fill(m4l, Dbkg, w)
         hbnn.Fill(Dbnn, w)
-            
+        hbnn3.Fill(Dbnn3, w)
+        hmet.Fill(met, w)
+        
         if Dbnn > BNNCUT:
             for h in hbag:
                 h.fillSR()            
@@ -343,6 +419,8 @@ def main():
     hm4l.Scale(scaleFactor)
     hm4lD.Scale(scaleFactor)
     hbnn.Scale(scaleFactor)
+    hbnn3.Scale(scaleFactor)
+    hmet.Scale(scaleFactor)
     for h in hbag:
         h.scale(scaleFactor)
 
@@ -405,6 +483,27 @@ def main():
     gSystem.ProcessEvents()
     cbnn.SaveAs('.png')
 
+    cbnn3.cd()
+    if isData:
+        hbnn3.Draw('ep')
+    else:
+        hbnn3.Draw('hist')
+    CMS_lumi.CMS_lumi(cbnn3, iPeriod, iPos)            
+    cbnn3.Update()
+    gSystem.ProcessEvents()
+    cbnn3.SaveAs('.png')    
+
+    cmet.cd()
+    if isData:
+        hmet.Draw('ep')
+    else:
+        hmet.Draw('hist')
+    CMS_lumi.CMS_lumi(cmet, iPeriod, iPos)            
+    cmet.Update()
+    gSystem.ProcessEvents()
+    cmet.SaveAs('.png')    
+
+    
     cm4l.cd()
     if isData:
         hm4l.Draw('ep')
@@ -420,6 +519,8 @@ def main():
     hfile.cd()
     cm4lD.Write()
     cbnn.Write()
+    cbnn3.Write()
+    cmet.Write()
     cm4l.Write()
     
     for h in hbag:
@@ -428,7 +529,7 @@ def main():
     hfile.Write()
     hfile.Close()
     
-    sleep(10)
+    sleep(2)
 # -------------------------------------------------------------------------
 try:     
     main()

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # ----------------------------------------------------------------------------
-#  File:        getYield.pt
+#  File:        getYields.py
 #  Description: sum weights of ntuples
 #  Created: ??-Oct-2016 HBP
 #           21-Oct-2016 apply to new ntuples from Nic.
@@ -17,6 +17,8 @@ sample    = re.compile('(?<=output_).*(?=.root)')
 isdata    = re.compile('Run20')
 ishiggs   = re.compile('HToZZ')
 issignal  = re.compile('MZp|MZP|Zprime|ZpBaryonic')
+MASSMIN   = 100.0
+MASSMAX   = 150.0
 # ----------------------------------------------------------------------------
 def main():
     if len(sys.argv) > 1:
@@ -34,15 +36,23 @@ def main():
     name = finalstate.findall(filenames[0])
     if len(name) == 0:
         sys.exit("** can't get sample name from %s" % filenames[0])
-
     name = name[0]
-
+    
+    name2 = finalstate.findall(filenames[-1])        
+    if len(name2) == 0:
+        sys.exit("** can't get sample name from %s" % filenames[-1])
+    name2 = name2[0]
+    if name != name2:
+        name = 'all'
+        
     # construct name of yield file
     yieldfile = "yields_%s.txt" % name
     print yieldfile
     
     out = open(yieldfile, 'w')
-    record = 'Yields (70 < m4l < 170 GeV): %s\n' % ctime()
+    record = 'Yields (70 < m4l < 170 GeV) and njets>1: %s\n' % ctime()
+    record = 'Yields (100 <= m4l <= 150 GeV): %s\n' % \
+      ctime()
     out.write('%s\n' % record)
     print record
     
@@ -82,6 +92,7 @@ def main():
     Float_t f_lept2_pt;
     Float_t f_lept3_pt;
     Float_t f_lept4_pt;
+    float f_massjj;
     };'''
     gROOT.ProcessLine(struct)
     from ROOT import Event
@@ -131,6 +142,8 @@ def main():
                               AddressOf(event, 'f_weight'))
         tree.SetBranchAddress('f_mass4l',
                               AddressOf(event, 'f_mass4l'))
+        tree.SetBranchAddress('f_massjj',
+                              AddressOf(event, 'f_massjj'))        
         for ii in xrange(4):
             jj = ii+1
             field = 'f_lept%d_pt' % jj
@@ -146,8 +159,9 @@ def main():
         w2 = 0.0
         for index in xrange(nevents):
             tree.GetEntry(index)
-            if event.f_mass4l <  70: continue
-            if event.f_mass4l > 170: continue
+            #if event.f_massjj <=   0: continue
+            if event.f_mass4l < MASSMIN: continue
+            if event.f_mass4l > MASSMAX: continue
                 
             w = event.f_weight
             if isData:

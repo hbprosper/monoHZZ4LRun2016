@@ -26,4 +26,13 @@ else
     echo "** WARNING ** pgammafit package not found, so you won't **"
     echo "** be able to do a Bayesian fit!                        **"
 fi
+
+
+if [ -d $HOME/external/limits ]; then
+    echo
+    echo "==> limits package available"
+    source $HOME/external/limits/setup.sh
+else
+    echo "** WARNING ** limits package not found **"
+fi
 echo

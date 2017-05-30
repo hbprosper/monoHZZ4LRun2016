@@ -14,11 +14,12 @@ from histutil import Ntuple, nameonly, mkroc
 #------------------------------------------------------------------
 VARNAME = 'f_pfmet'
 BNNNAME = 'm4lmelamet'
-MASSMIN =  70
-MASSMAX = 170
+MASSMIN = 100
+MASSMAX = 150
 BNNCUT  = 0.3
 #------------------------------------------------------------------
 def readAndFillHist(filename, bnn, c1, h1, m4lmela, step=10000,
+                        SR=False,
                         treename="HZZ4LeptonsAnalysisReduced"):
     # ---------------------------------------
     # open ntuple file
@@ -49,8 +50,9 @@ def readAndFillHist(filename, bnn, c1, h1, m4lmela, step=10000,
         count += 1
         if count < ntrain: continue
 
-        #d = m4lmela(event.f_mass4l, event.f_D_bkg_kin)
-        #if d < BNNCUT: continue
+        if SR:
+            d = m4lmela(event.f_mass4l, event.f_D_bkg_kin)
+            if d < BNNCUT: continue
             
         w = event.f_weight
         for ii in xrange(len(fields)):
@@ -64,7 +66,7 @@ def readAndFillHist(filename, bnn, c1, h1, m4lmela, step=10000,
             c1.Update()
             gSystem.ProcessEvents()                       
     c1.cd()
-    h1.Scale(1.0/h1.Integral())
+    #h1.Scale(1.0/h1.Integral())
     h1.Draw("hist")
     c1.Update()
     gSystem.ProcessEvents()
@@ -75,13 +77,20 @@ def main():
     if argc < 1:
         print '''
 Usage:
-    plot.py <sig-filename1> ...
+    plot.py <sig-filename1> ... [SR]
     '''
         sys.exit()
             
     print "="*80
     os.system("mkdir -p figures")
 
+    SR = argv[-1] == 'SR'
+    if SR:
+        argv = argv[:-1]
+        postfix = '_SR'
+    else:
+        postfix = ''
+    
     sigfilenames = argv
     sigfilenames.sort()
     bkgfilename = '../../ntuple_SM.root'
@@ -129,7 +138,7 @@ Usage:
     nbins = 100
     kolors= [kRed, kOrange, kYellow+2, kGreen+1, kBlue, kMagenta+1, kCyan+1]
     icolor= 0
-    h = []
+    hsig = []
     # SIGNAL
     for ii, sigfilename in enumerate(sigfilenames):
         color = kolors[icolor]
@@ -145,8 +154,9 @@ Usage:
         hs1.GetYaxis().SetNdivisions(505)
         hs1.SetFillColor(color)
         hs1.SetFillStyle(3001)    
-        h.append(hs1)
-    
+        hsig.append(hs1)
+
+    hbkg = []
     # BACKGROUND
     mcolor  = kMagenta+1
     hb1  = TH1F('hb1', '', nbins, 0, 1)
@@ -157,12 +167,13 @@ Usage:
     hb1.GetYaxis().SetNdivisions(505)
     hb1.SetFillColor(mcolor)
     hb1.SetFillStyle(3003)
-    h.append(hb1)
-    
+    hbkg.append(hb1)
+
+    h = hsig + hbkg
     # ---------------------------------------------------------
     # Fill 
     # ---------------------------------------------------------
-    cbnn1 = TCanvas("figures/f_%s_lin" % BNNname, BNNname,
+    cbnn1 = TCanvas("figures/f_%s_lin%s" % (BNNname, postfix), BNNname,
                         10, 10, 500, 500)
     
     # plot
@@ -170,9 +181,9 @@ Usage:
         name = h[ii].GetName()
         cbnn1.SetTitle(name)
         print name
-        readAndFillHist(sigfilename, bnn, cbnn1, h[ii], m4lmela, 500)
+        readAndFillHist(sigfilename, bnn, cbnn1, h[ii], m4lmela, 500, SR)
     
-    readAndFillHist(bkgfilename, bnn, cbnn1, hb1, m4lmela, 10000)
+    readAndFillHist(bkgfilename, bnn, cbnn1, hb1, m4lmela, 10000, SR)
 
     icolor = 0
     hroc = []
@@ -189,6 +200,16 @@ Usage:
     # Plot
     # ---------------------------------------------------------
     cbnn1.cd()
+    #hsig[0].SetMaximum(1.0)
+    #hsig[-1].SetMaximum(1.0)
+    hsig[-1].Draw('hist')
+    for hist in hsig:
+        hist.Draw("histsame")
+    cbnn1.Update()
+    gSystem.ProcessEvents()
+    cbnn1.SaveAs('fig_signals.png')
+        
+    cbnn1.cd()
     h[0].SetMaximum(1.0)
     h[-1].SetMaximum(1.0)
     h[-1].Draw('hist')
@@ -198,7 +219,7 @@ Usage:
     gSystem.ProcessEvents()
     cbnn1.SaveAs('.png')
 
-    cbnn1log = TCanvas("figures/f_%s_log" % BNNname, BNNname,
+    cbnn1log = TCanvas("figures/f_%s_log%s" % (BNNname, postfix), BNNname,
                        520, 10, 500, 500)
     cbnn1log.cd()
     cbnn1log.SetLogy()
@@ -210,7 +231,7 @@ Usage:
     cbnn1log.SaveAs('.png')
 
 
-    croc = TCanvas("figures/f_%s_roc" % BNNname, BNNname,
+    croc = TCanvas("figures/f_%s_roc%s" % (BNNname, postfix), BNNname,
                     1040, 10, 500, 500)
     croc.cd()
     hroc[0].Draw('al')

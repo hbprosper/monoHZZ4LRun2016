@@ -65,19 +65,9 @@ FILES  = '''
 0.0000	fig_ZpBary_MZp00010_MA00150.root
 '''
 
-PREFIX = 'Zprime'
-FILES  = '''
-  187.23	fig_Zprime_MZp00600_MA00300.root
-  296.35	fig_Zprime_MZp00800_MA00300.root
-  390.11	fig_Zprime_MZp01000_MA00300.root
-  480.69	fig_Zprime_MZp01200_MA00300.root
-  573.08	fig_Zprime_MZp01400_MA00300.root
-  709.83	fig_Zprime_MZp01700_MA00300.root
-  763.39	fig_Zprime_MZp02500_MA00300.root
-  813.28	fig_Zprime_MZp02000_MA00300.root
-'''
 
 
+FILES = replace(FILES, 'fig_', 'histos/histos_')
 FILES = map(lambda x: split(x)[-1], split(strip(FILES), '\n'))
 getmass = re.compile('(?<=MZp)[0-9]+(?=_)')
 # ---------------------------------------------------------------------------

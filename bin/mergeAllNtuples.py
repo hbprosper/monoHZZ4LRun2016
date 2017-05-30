@@ -10,8 +10,8 @@ from string import *
 def main():
     filenames = map(strip, open("mergelists.txt").readlines())
     for filename in filenames:
-        filename = replace(filename, '4mu', '*mu')
-        cmd = './mergeNtuples.py %s' % filename
+        filename = replace(filename, '4mu', '*')
+        cmd = 'mergeNtuples.py %s' % filename
         print cmd
         os.system(cmd)
 # ---------------------------------------------------------------------------
