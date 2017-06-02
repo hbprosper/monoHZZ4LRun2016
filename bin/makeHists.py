@@ -18,7 +18,7 @@ METBINS  = 200
 METMIN   =   0
 METMAX   =1000
 
-MASSBINS =  25
+MASSBINS =  50
 MASSMIN  = 100
 MASSMAX  = 150
 
@@ -362,6 +362,8 @@ def main():
 
         if m4l  < MASSMIN: continue
         if m4l  > MASSMAX: continue
+
+        #if (m4l >= 100) and (m4l <=150): continue
                         
         w = event.f_weight
         t1 += w

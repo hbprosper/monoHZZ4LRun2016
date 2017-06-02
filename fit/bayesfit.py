@@ -12,12 +12,13 @@ from ROOT import *
 from histutil import mklegend, Scribe
 from time import sleep
 from math import sqrt
-from string import capitalize
+from string import capitalize, find
 from array import array
 import CMS_lumi, tdrstyle
 #------------------------------------------------------------------------------
-HNAME = 'hmet'
-PATH  = '100-150'
+HNAME = 'CR_m4l'
+PATH  = '../histos'
+
 MAXITER   = 10000
 TOLERANCE = 1.e-6
 METHOD    = 'MIGRAD'
@@ -33,12 +34,18 @@ def getContents(h):
 
 def getm4lrange(fdata):
     # get m4l range
-    hm4l = fdata.Get('hm4l').Clone('hm4l_tmp')
-    if not hm4l: sys.exit("** can't find hm4l")
+    if HNAME[:2] == 'SR':
+        hname = 'SR_m4l'
+    else:
+        hname = 'CR_m4l'        
+    hm4l = fdata.Get(hname).Clone('hm4ltmp')
+    if not hm4l: sys.exit("** can't find %s" % hname)
+        
     xbins = int(hm4l.GetNbinsX())
     width = hm4l.GetXaxis().GetBinWidth(1)
     xmin  = int(hm4l.GetXaxis().GetBinLowEdge(1))
     xmax  = int(hm4l.GetXaxis().GetBinLowEdge(xbins)+width)
+    
     return (xbins, xmin, xmax, width)
 
 def drawLine(hr, Y=1):
@@ -229,8 +236,6 @@ def main():
     aguess= total / len(sources)
     for i,(filename,hname,color) in enumerate(sources):
         guess[i] = aguess
-    guess[0] = 152.5
-    guess[1] =  70.5
     pgfit.execute(guess)
 
     if not pgfit.good():

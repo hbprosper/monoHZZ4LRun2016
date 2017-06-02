@@ -16,6 +16,7 @@ from ROOT import *
 from histutil import *
 import CMS_lumi, tdrstyle
 #-----------------------------------------------------------------------------
+HNAME = 'SR_met'
 MUMIN = 0.0
 MUMAX = 1000.0
 CL    =  0.95
@@ -157,18 +158,25 @@ def plotPosterior(name, bayes, limit, plotdata):
     hclone2.Draw('csame')
     arrow.DrawArrow(limit, ymax/3, limit, ymax/8, 0.04)
     
-    scribe = Scribe(0.33, 0.85)
+    scribe = Scribe(0.30, 0.88)
     scribe.write(name)
-    if len(plotdata) == 6:
-        ndata, nsig, esig, nbkg, ebkg = plotdata[1:]
-        scribe.write("yields", 0.05)
-        scribe.write("data:    %5.0f"  % ndata, 0.07)
-        scribe.write("bkg:       %5.1f #pm %-5.1f"   % (nbkg, ebkg),  0.07)
-        scribe.write("signal:    %5.1e #pm %-5.1e"  % (nsig, esig),  0.07)
-    scribe.write("#hat{#mu} = %8.2f #pm %-8.2f" % (muhat, muerr))        
-    scribe.write("#mu < %8.2f @ %4.1f%s CL" % (limit, 100*CL, '%'))
-
+    ndata, nsig, esig, nbkg, ebkg, prob, limits = plotdata[1:]
+    scribe.write("yields", 0.05)
+    scribe.write("data:    %5.0f"  % ndata, 0.07)
+    scribe.write("bkg:       %5.1f #pm %-5.1f"   % (nbkg, ebkg),  0.07)
+    scribe.write("signal:    %5.1e #pm %-5.1e"  % (nsig, esig),  0.07)
+    scribe.write("#hat{#mu}: %8.2f #pm %-8.2f" % (muhat, muerr), 0.07)
     
+    scribe.write("observed limit", 0.05)        
+    scribe.write("#mu < %8.2f @ %4.1f%s CL" % (limit, 100*CL, '%'), 0.07)
+    scribe.write("expected limits", 0.05)
+    record = '('
+    for ii in xrange(len(limits)):
+        x = strip('%8.2f' % limits[ii])
+        record += '%s, ' % x
+    record = record[:-2]+')'
+    scribe.write("#mu = %s" % record, 0.07)
+
     CMS_lumi.CMS_lumi(c, iPeriod, iPos)
     c.Update()
     c.SaveAs('.png')
@@ -220,9 +228,6 @@ def computeLimit(cfgfilename, plotdata=[], mumin=MUMIN, mumax=MUMAX):
     print record
     out.write('%s\n' % record)
 
-    if len(plotdata) > 0:
-        plotPosterior(nameonly(cfgfilename), bayes, blimit, plotdata)
-
     print '\tcomputing expected limits...'
     
     swatch   = TStopwatch()
@@ -236,6 +241,13 @@ def computeLimit(cfgfilename, plotdata=[], mumin=MUMIN, mumax=MUMAX):
     for i, q in enumerate(limits):
         record = '%9.3f\t%9.3f' % (prob[i], q)
         print record
+
+
+    if len(plotdata) > 0:
+        plotdata.append(prob)
+        plotdata.append(limits)
+        bayes.setData(data)
+        plotPosterior(nameonly(cfgfilename), bayes, blimit, plotdata)
         
     # --------------------------------------
     # compute Wald limit
@@ -281,7 +293,7 @@ def main():
 
     datafilename = 'histos/histos_data.root'
     bkgfilename  = 'histos/histos_SM.root'
-    hname = 'hmet'
+    hname = HNAME
     plot  = True
     
     for ii, sigfilename in enumerate(sigfilenames):
@@ -292,6 +304,7 @@ def main():
                                                      [filenames], name, hname)
         
         computeLimit(cfgfilename, plotdata)
+        break
 #-----------------------------------------------------------------------------
 try:
     main()    
