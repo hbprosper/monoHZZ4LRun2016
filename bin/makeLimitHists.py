@@ -107,36 +107,37 @@ int   f_finalstate
 int   f_outlier
 '''
 
-gROOT.ProcessLine('.L metd.cpp')
-gROOT.ProcessLine('.L m4lmela.cpp')
-gROOT.ProcessLine('.L m4lmelamet.cpp')
-
+print "loading libMVD..."
+try:
+    gSystem.Load('lib/libMVD')
+    x = metd
+except:
+    sys.exit("** unable to load lib/libMVD")    
 # ----------------------------------------------------------------------------
 def decodeCommandLine():
     VERSION = 'v1.0.0'
     USAGE = '''
     Usage:
-        makeLimitHists.py [options] ntuple-file ... 
+        makeLimitHists.py ntuple-file ... 
 
     options:
-    -b background normalization uncertainty [0.3]
-    -s signal normalization uncertainty     [0.1]
+    none
         '''
     parser = optparse.OptionParser(usage=USAGE, version=VERSION)
 
-    parser.add_option('-b', '--berror',
-                          action='store',
-                          dest='berror',
-                          type='float',
-                          default=0.3,
-                          help='relative bkg normalization uncertainty')
+    #parser.add_option('-b', '--berror',
+    #                      action='store',
+    #                      dest='berror',
+    #                      type='float',
+    #                      default=0.3,
+    #                      help='relative bkg normalization uncertainty')
 
-    parser.add_option('-s', '--serror',
-                          action='store',
-                          dest='serror',
-                          type='float',
-                          default=0.1,
-                          help='relative sig normalization uncertainty')
+    #parser.add_option('-s', '--serror',
+    #                      action='store',
+    #                      dest='serror',
+    #                      type='float',
+    #                      default=0.1,
+    #                      help='relative sig normalization uncertainty')
  
     options, args = parser.parse_args()
     
@@ -213,7 +214,7 @@ class HistBag:
     def __init__(self, CMS_lumi, iPeriod, iPos,
                      prefix, plotname,
                      ntuple, field,
-                     hname, xtitle,
+                     name, xtitle,
                      xoff=10, yoff=10, xbins=100, xmin=0, xmax=500):
 
         self.CMS_lumi = CMS_lumi
@@ -222,7 +223,7 @@ class HistBag:
         self.prefix = prefix
         self.ntuple = ntuple
         self.field  = field
-        self.hname  = hname        
+        self.name   = name        
         self.bnn1   = metd
         self.bnn2   = m4lmela
         self.bnn3   = m4lmelamet
@@ -254,14 +255,16 @@ class HistBag:
             fcolor = kAzure+2
             self.option = 'hist'
             
-        self.plotname = 'fig_%s_%s_%s' % (prefix, hname, plotname)
+        self.plotname = 'fig_%s_%s_%s' % (prefix, self.name, plotname)
     
-        cname = 'histos/%s' % self.plotname
-        print cname
+        self.cname = 'histos/%s' % self.plotname
+        c  = TCanvas(self.cname, self.cname, xoff, yoff, 500, 500)
+        self.c = c
         
-        c  = TCanvas(cname, cname, xoff, yoff, 500, 500)
-    
-        h  = TH1F('%s_%s' % (prefix, hname), '', xbins, xmin, xmax)
+        self.hname = '%s_%s' % (prefix, self.name); print self.hname
+        h  = TH1F(self.hname, '', xbins, xmin, xmax)
+        self.h = h
+        
         h.SetLineWidth(1)
         h.SetMarkerColor(mcolor)
         h.SetMarkerSize(msize)
@@ -271,24 +274,21 @@ class HistBag:
         h.GetXaxis().SetNdivisions(505)
         h.GetYaxis().SetNdivisions(505)    
         h.Sumw2()
-                    
-        self.c  = c
-        self.h = h
-        
+
     def __del__(self):
         pass
 
     def fill(self):
-        if self.hname == 'bnn1':
+        if self.name == 'bnn1':
             met = self.ntuple.f_pfmet
             x   = self.bnn1(met)
             
-        elif self.hname == 'bnn2':
+        elif self.name == 'bnn2':
             m4l = self.ntuple.f_mass4l
             D   = self.ntuple.f_D_bkg_kin
             x   = self.bnn2(m4l, D)
             
-        elif self.hname == 'bnn3':
+        elif self.name == 'bnn3':
             m4l = self.ntuple.f_mass4l
             D   = self.ntuple.f_D_bkg_kin
             met = self.ntuple.f_pfmet
@@ -298,7 +298,7 @@ class HistBag:
             x   = self.ntuple.__getattribute__(self.field)
 
         w = self.ntuple.f_weight
-        
+
         self.h.Fill(x, w)
 
     def scale(self, scaleFactor):
@@ -359,7 +359,8 @@ def main():
     # ---------------------------------------        
     ntuple  = getNtuple(filename)
     nevents = ntuple.nevents
-
+    SKIP = nevents / 10
+    
     print '='*80            
     print 'number of entries: %d' % nevents
     print 'output file: %s' % outfilename    
@@ -391,11 +392,14 @@ def main():
     t2 = 0.0
     w1 = 0.0
     w2 = 0.0
+    swatch = TStopwatch()
+    swatch.Start()
     passed = 0
     for index in xrange(nevents):
         
         ntuple.read(index)
-        
+        if index % SKIP == 0: print index
+
         m4l  = ntuple.f_mass4l
 
         if m4l  < CRMASSMIN: continue
@@ -411,19 +415,22 @@ def main():
         w2 += w*w
 
         SR = (m4l >= SRMASSMIN) and (m4l <= SRMASSMAX)
-
+    
         if SR:
             for h in SRbag: h.fill()
         else:
             for h in CRbag: h.fill()
         
         if passed % SKIP == 0:
-            print '%10d %10d' % (passed, index)
-
             for h in SRbag: h.draw()            
 
         passed += 1
-        
+
+    t  = swatch.RealTime()
+    t /= nevents
+    t *= 1e6
+    print 'execution time: %10.2f microsecond/event' % t
+    
     # now re-scale histograms to compensate for removal of
     # outlier events.
     scaleFactor = t1 / w1
@@ -470,7 +477,7 @@ def main():
         h.draw()
         h.save()
         h.write()
-
+        
     hfile.Write()
     hfile.Close()
     

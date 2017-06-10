@@ -1,4 +1,5 @@
 export PATH=$PWD/bin:$PATH
+export PYTHONPATH=$PWD/python:$PYTHONPATH
 
 if [ -d $HOME/external/fbm.2004-11-10 ]; then
     echo
@@ -36,3 +37,5 @@ else
     echo "** WARNING ** limits package not found **"
 fi
 echo
+
+

@@ -18,6 +18,7 @@ def nameonly(s):
     import posixpath
     return posixpath.splitext(posixpath.split(s)[1])[0]
 # ----------------------------------------------------------------------------
+gSystem.Load("lib/libMVD")
 def makeTree(event,
              filename,
              typenames, 
