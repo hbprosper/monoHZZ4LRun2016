@@ -352,6 +352,7 @@ def main():
     name = nameonly(filename)
     plotname    = replace(name, 'ntuple_', '')
     histfname   = replace(name, 'ntuple_', 'histos_')
+    os.system('mkdir -p histos')
     outfilename = 'histos/%s.root' % histfname
         
     # ---------------------------------------
