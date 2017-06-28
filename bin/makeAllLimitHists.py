@@ -8,7 +8,7 @@ from string import *
 from glob import glob
 # ----------------------------------------------------------------------------
 def main():
-    filenames = glob('ntuple_*.root')
+    filenames = glob('ntuples/ntuple_*.root')
     filenames.sort()
     for filename in filenames:
         cmd = 'makeLimitHists.py %s' % filename
