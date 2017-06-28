@@ -23,28 +23,29 @@ getSig= re.compile('Z[a-zA-Z]+')
 getMZp= re.compile('(?<=MZp)[0-9]+(?=_)')
 getMA = re.compile('(?<=MA)[0-9]+(?=_)')
 # ----------------------------------------------------------------------------
-def error(message):
+def lerror(message):
     sys.exit('** computeLimit.py ** %s' % message)
-def warn(message):
+    
+def lwarn(message):
     print '** computeLimit.py ** %s' % message
 
 def getNbins(filename, hname):
     hfile = TFile(filename)
     if not hfile.IsOpen():
-        error("can't open file %s" % filename)
+        lerror("can't open file %s" % filename)
     h = hfile.Get(hname)
     if h == None:
-        error("can't find histogram %s" % hname)
+        lerror("can't find histogram %s" % hname)
     nbins = int(h.GetNbinsX())
     return nbins
 
 def getCount(filename, hname, nbins):
     hfile = TFile(filename)
     if not hfile.IsOpen():
-        error("can't open file %s" % filename)
+        lerror("can't open file %s" % filename)
     h = hfile.Get(hname)
     if h == None:
-        error("can't find histogram %s" % hname)
+        lerror("can't find histogram %s" % hname)
     error = Double()
     count = h.IntegralAndError(1, nbins, error)
     error = float(error)
@@ -52,7 +53,7 @@ def getCount(filename, hname, nbins):
 # ----------------------------------------------------------------------------    
 def getPlotData(cfgfilename):
     if not os.path.exists(cfgfilename):
-        error("can't read configuration file %s" % cfgfilename)
+        lerror("can't read configuration file %s" % cfgfilename)
 
     # get first 50 or so records
     records = []
@@ -94,7 +95,7 @@ def getPlotData(cfgfilename):
         try:
             datname = t[1]
         except:
-            error('no histogram name has been specified on line\n=> %s\n' % \
+            lerror('no histogram name has been specified on line\n=> %s\n' % \
                       filteredRecords[index])
                       
         nbins = min(nbins, getNbins(datfilename, datname))
@@ -104,7 +105,7 @@ def getPlotData(cfgfilename):
         t = split(filteredRecords[index])
         sigfilename = t[0]
         if sigfilename[-5:] != '.root':
-            error('expected a signal histogram file on line\n=> %s\n' % \
+            lerror('expected a signal histogram file on line\n=> %s\n' % \
                       filteredRecords[index])
 
         # get signal histogram
@@ -114,14 +115,14 @@ def getPlotData(cfgfilename):
             # none specified, assume signal histogram name is
             # same as the data histogram name
             signame = datname
-            warn('assuming signal histogram name is %s' % signame)
+            lwarn('assuming signal histogram name is %s' % signame)
 
         # get background filename
         index += 1
         t = split(filteredRecords[index])
         bkgfilename = t[0]
         if bkgfilename[-5:] != '.root':
-            error('expected a background histogram file on line\n=> %s\n' % \
+            lerror('expected a background histogram file on line\n=> %s\n' % \
                       filteredRecords[index])
 
         # get background histogram
@@ -131,7 +132,7 @@ def getPlotData(cfgfilename):
             # none specified, assume background histogram name is
             # same as the data histogram name
             bkgname = datname
-            warn('assuming background histogram name is %s' % bkgname)
+            lwarn('assuming background histogram name is %s' % bkgname)
 
         # okay, now get data we need
         ndata, edata = getCount(datfilename, datname, nbins); ndata = int(ndata)
@@ -155,7 +156,7 @@ def getPlotData(cfgfilename):
                 ebkg  = atof(t[1])
                 break
     if ndata == None:
-        error("check format of file %s " % cfgfilename)
+        lerror("check format of file %s " % cfgfilename)
     plotdata = [nbins, ndata, sig, esig, bkg, ebkg]
     return plotdata
 # ---------------------------------------------------------------------------
