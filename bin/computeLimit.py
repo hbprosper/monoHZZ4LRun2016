@@ -22,38 +22,140 @@ CL    =  0.95
 getSig= re.compile('Z[a-zA-Z]+')
 getMZp= re.compile('(?<=MZp)[0-9]+(?=_)')
 getMA = re.compile('(?<=MA)[0-9]+(?=_)')
-# ---------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
+def error(message):
+    sys.exit('** computeLimit.py ** %s' % message)
+def warn(message):
+    print '** computeLimit.py ** %s' % message
+
+def getNbins(filename, hname):
+    hfile = TFile(filename)
+    if not hfile.IsOpen():
+        error("can't open file %s" % filename)
+    h = hfile.Get(hname)
+    if h == None:
+        error("can't find histogram %s" % hname)
+    nbins = int(h.GetNbinsX())
+    return nbins
+
+def getCount(filename, hname, nbins):
+    hfile = TFile(filename)
+    if not hfile.IsOpen():
+        error("can't open file %s" % filename)
+    h = hfile.Get(hname)
+    if h == None:
+        error("can't find histogram %s" % hname)
+    error = Double()
+    count = h.IntegralAndError(1, nbins, error)
+    error = float(error)
+    return (count, error)
+# ----------------------------------------------------------------------------    
 def getPlotData(cfgfilename):
-    inp   = open(cfgfilename)
-    nbins = None
-    ndata = None
+    if not os.path.exists(cfgfilename):
+        error("can't read configuration file %s" % cfgfilename)
+
+    # get first 50 or so records
+    records = []
+    inp = open(cfgfilename)
+    for ii in xrange(50):
+        try:
+            record = strip(inp.readline())
+        except:
+            break
+        if record == '': continue
+        records.append(record)        
+    filteredRecords = filter(lambda x: x[0] != '#', records)
+
+    # decode records
+    index = 0
+    nbins = atoi(filteredRecords[index])
+    
+    # counts
+    data  = None
     sig   = None
     esig  = None
     bkg   = None
-    ebkg  = None    
+    ebkg  = None
     
-    for ii in xrange(20):
+    # check if root files have been specified
+    # format:
+    #   numberOfBins
+    #   data-histogram-filename         data-histogram-name
+    #   numberOfSamples    #   signal-histogram-filename       signal-histogram-name
+    #   background-histogram-filename   background-histogram-name
+
+    index += 1
+    t = split(filteredRecords[index])
+    datfilename = t[0]
+    histogramInput = datfilename[-5:] == '.root'
+    
+    if histogramInput:
+        # the histogram name is needed
         try:
-            record = inp.readline()
+            datname = t[1]
         except:
-            break
-        t = split(record)
-        if len(t) == 0: continue
-            
-        token = t[0]
-        if   token == '#nbins:':
-            nbins = atoi(t[1])
-        elif token == '#data:':
-            ndata = atoi(t[1])
-        elif token == '#sig:':
-            sig   = atof(t[1])
-        elif token == '#esig:':
-            esig  = atof(t[1])
-        elif token == '#bkg:':
-            bkg   = atof(t[1])
-        elif token == '#ebkg:':
-            ebkg  = atof(t[1])
-            break
+            error('no histogram name has been specified on line\n=> %s\n' % \
+                      filteredRecords[index])
+                      
+        nbins = min(nbins, getNbins(datfilename, datname))
+        
+        # get signal filename
+        index += 2 # skip number os samples
+        t = split(filteredRecords[index])
+        sigfilename = t[0]
+        if sigfilename[-5:] != '.root':
+            error('expected a signal histogram file on line\n=> %s\n' % \
+                      filteredRecords[index])
+
+        # get signal histogram
+        try:
+            signame = t[1]
+        except:
+            # none specified, assume signal histogram name is
+            # same as the data histogram name
+            signame = datname
+            warn('assuming signal histogram name is %s' % signame)
+
+        # get background filename
+        index += 1
+        t = split(filteredRecords[index])
+        bkgfilename = t[0]
+        if bkgfilename[-5:] != '.root':
+            error('expected a background histogram file on line\n=> %s\n' % \
+                      filteredRecords[index])
+
+        # get background histogram
+        try:
+            bkgname = t[1]
+        except:
+            # none specified, assume background histogram name is
+            # same as the data histogram name
+            bkgname = datname
+            warn('assuming background histogram name is %s' % bkgname)
+
+        # okay, now get data we need
+        ndata, edata = getCount(datfilename, datname, nbins); ndata = int(ndata)
+        sig,   esig  = getCount(sigfilename, signame, nbins)
+        bkg,   ebkg  = getCount(bkgfilename, bkgname, nbins)
+    else:
+        for record in xrange(records):
+            t = split(record)
+            token = t[0]
+            if   token == '#nbins:':
+                nbins = atoi(t[1])
+            elif token == '#data:':
+                ndata = atoi(t[1])
+            elif token == '#sig:':
+                sig   = atof(t[1])
+            elif token == '#esig:':
+                esig  = atof(t[1])
+            elif token == '#bkg:':
+                bkg   = atof(t[1])
+            elif token == '#ebkg:':
+                ebkg  = atof(t[1])
+                break
+    if ndata == None:
+        error("check format of file %s " % cfgfilename)
     plotdata = [nbins, ndata, sig, esig, bkg, ebkg]
     return plotdata
 # ---------------------------------------------------------------------------
@@ -200,15 +302,12 @@ def computeLimit(cfgfilename, mumin=MUMIN, mumax=MUMAX):
     signal:      %15.6f\t+/- %15.6f
     background:  %11.2f     \t+/- %11.2f
 ''' % tuple([cfgfilename]+plotdata[1:])
-    
-    # sample size for expected limit calculation
-    size = 100
-    
+
     os.system('mkdir -p results')
-    
-    resultfilename = replace(cfgfilename, '.cfg', '.txt')
-    resultfilename = replace(resultfilename, 'config', 'result')
-    print '-> result file: %s' % resultfilename
+    name = nameonly(cfgfilename)
+    resultfilename = 'results/%s.txt' % name
+
+    print '-> results will be written to file: %s' % resultfilename
     out = open(resultfilename, 'w')
 
     mass = getMZp.findall(cfgfilename)
@@ -217,7 +316,7 @@ def computeLimit(cfgfilename, mumin=MUMIN, mumax=MUMAX):
     else:
         mass = 1000
     print "\n\tmass(Zprime) = %10.0f GeV\n" % mass
-    if nsig < 1.e-4:
+    if nsig < 1.e-3:
         sys.exit('\n\t** the predicted signal %e events '\
                      'is absurdly small, so ciao!\n' % nsig)
 
@@ -241,6 +340,10 @@ def computeLimit(cfgfilename, mumin=MUMIN, mumax=MUMAX):
     # --------------------------------------
     # compute Bayes limit
     # --------------------------------------
+
+    # sample size for expected limit calculation
+    size = 100
+        
     swatch = TStopwatch()
     swatch.Start()
 
@@ -275,7 +378,7 @@ def computeLimit(cfgfilename, mumin=MUMIN, mumax=MUMAX):
     plotdata.append(limits)
     bayes.setData(data)
     plotPosterior(nameonly(cfgfilename), bayes, blimit, plotdata)
-        
+    
     # --------------------------------------
     # compute Wald limit
     # --------------------------------------
@@ -303,6 +406,7 @@ def computeLimit(cfgfilename, mumin=MUMIN, mumax=MUMAX):
         print record
         out.write('%s\n' % record)
     out.close()
+    sleep(5)
 # ---------------------------------------------------------------------------
 def main():
     if len(sys.argv) < 2:

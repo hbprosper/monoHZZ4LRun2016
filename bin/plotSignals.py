@@ -66,7 +66,6 @@ FILES  = '''
 '''
 
 
-
 FILES = replace(FILES, 'fig_', 'histos/histos_')
 FILES = map(lambda x: split(x)[-1], split(strip(FILES), '\n'))
 getmass = re.compile('(?<=MZp)[0-9]+(?=_)')
@@ -82,7 +81,7 @@ def main():
     iPeriod = 4
     iPos    = 0
     CMS_lumi.relPosX = 0.12
-    CMS_lumi.lumi_13TeV = "30 fb^{-1}"
+    CMS_lumi.lumi_13TeV = "36 fb^{-1}"
     CMS_lumi.writeExtraText = 1
     CMS_lumi.extraText = "Simulation"
 
@@ -98,10 +97,10 @@ def main():
         f = TFile(filename); 
         if not f.IsOpen(): sys.exit("can't open %s" % filename)
         # get BNN histogram
-        hbnn.append(f.Get('hbnn').Clone('hbnn_%4.4d' % mass))
+        hbnn.append(f.Get('SR_bnn3').Clone('bnn_%4.4d' % mass))
         # get signal region (SR) missing-ET (MET)
-        hmet.append(f.Get('hpfmets').Clone('hmet_%4.4d' % mass))
-        hpt4l.append(f.Get('hpt4ls').Clone('hpt4l_%4.4d' % mass))
+        hmet.append(f.Get('SR_met').Clone('met_%4.4d' % mass))
+        hpt4l.append(f.Get('SR_pt4l').Clone('pt4l_%4.4d' % mass))
         meanmet  = hmet[-1].GetMean()
         meanpt4l = hpt4l[-1].GetMean()
         tfile.append(f)
